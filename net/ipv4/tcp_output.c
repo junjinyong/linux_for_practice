@@ -440,7 +440,16 @@ struct tcp_out_options {
 	__u32 tsval, tsecr;	/* need to include OPTION_TS */
 	struct tcp_fastopen_cookie *fastopen_cookie;	/* Fast open cookie */
 	struct mptcp_out_options mptcp;
+	__u8 puzzle_type;
+	__u32 puzzle;
+	__u32 nonce;
+	__u32 dns_ip;
 };
+
+static void puzzle_options_write(struct tcphdr *th, __be32 *ptr, struct tcp_out_options *opts) {
+	/*TODO*/
+
+}
 
 static void mptcp_options_write(struct tcphdr *th, __be32 *ptr,
 				struct tcp_sock *tp,
@@ -697,6 +706,37 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			p[foc->len + 1] = TCPOPT_NOP;
 		}
 		ptr += (len + 3) >> 2;
+	}
+
+	if (unlikely(opts->puzzle_type)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_PZL_TYPE << 16) |
+			       (TCPOLEN_PZL_TYPE << 8) |
+			       opts->puzzle_type);
+	}
+
+	if (unlikely(opts->puzzle)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_PUZZLE << 8) |
+			       TCPOLEN_PUZZLE);
+		*ptr++ = htol(opts->puzzle)
+	}
+
+	if (unlikely(opts->nonce)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_NONCE << 8) |
+			       TCPOLEN_NONCE);
+		*ptr++ = htol(opts->nonce)
+	}
+
+	if (unlikely(opts->dns_ip)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_DNS_IP << 8) |
+			       TCPOLEN_DNS_IP);
+		*ptr++ = htol(opts->dns_ip)
 	}
 
 	smc_options_write(ptr, &options);

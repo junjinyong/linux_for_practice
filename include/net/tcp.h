@@ -189,6 +189,11 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCPOPT_MPTCP		30	/* Multipath TCP (RFC6824) */
 #define TCPOPT_FASTOPEN		34	/* Fast open (RFC7413) */
 #define TCPOPT_EXP		254	/* Experimental */
+
+#define TCPOPT_PZL_TYPE		11
+#define TCPOPT_PUZZLE		12
+#define TCPOPT_NONCE		13
+#define TCPOPT_DNS_IP		14
 /* Magic number to be after the option value for sharing TCP
  * experimental options. See draft-ietf-tcpm-experimental-options-00.txt
  */
@@ -207,6 +212,11 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCPOLEN_FASTOPEN_BASE  2
 #define TCPOLEN_EXP_FASTOPEN_BASE  4
 #define TCPOLEN_EXP_SMC_BASE   6
+
+#define TCPOLEN_PZL_TYPE       3
+#define TCPOLEN_PUZZLE	       6
+#define TCPOLEN_NONCE	       6
+#define TCPOLEN_DNS_IP	       6
 
 /* But this is what stacks really send out. */
 #define TCPOLEN_TSTAMP_ALIGNED		12
