@@ -5842,10 +5842,12 @@ static int tcp_check_puzzle_for_syn_packet(struct sock *sk, struct sk_buff *skb,
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct tcp_fastopen_cookie foc = { .len = -1 };
-	int saved_clamp = tp->rx_opt.mss_clamp;
+
+	struct puzzle_policy * policy;
 
 	tcp_parse_options(sock_net(sk), skb, &tp->rx_opt, 0, &foc);
 
+	return 0;
 
 }
 /*

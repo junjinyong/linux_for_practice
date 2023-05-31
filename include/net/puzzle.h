@@ -51,4 +51,8 @@ int update_policy_type(u32 ip, u8 type);
 int update_policy_length(u32 ip, u16 length);
 int update_puzzle_cache(u32 ip, u32 puzzle_type, u32 puzzle);
 
+int print_policy(void);
+int add_policy(u32 ip, u8 puzzle_type, u16 assigned_length);
+
+
 #endif

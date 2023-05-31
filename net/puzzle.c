@@ -144,7 +144,7 @@ int print_policy(void) {
 
     return count;
 }
-
+EXPORT_SYMBOL(print_policy);
 SYSCALL_DEFINE0(puzzle_print_policy)
 {
     return print_policy();
@@ -188,12 +188,12 @@ int add_policy(u32 ip, u8 puzzle_type, u16 assigned_length) {
     policy->puzzle_type = puzzle_type;
     policy-> assigned_length = 2;
 
-    list_add_tail(policy->list, &policy);
+    list_add_tail(&(policy->list), &policy_head);
 
 
     return 0;
 }
-
+EXPORT_SYMBOL(add_policy);
 SYSCALL_DEFINE3(puzzle_add_policy, u32, ip, u8, puzzle_type, u16, assigned_length)
 {
     return add_policy(ip, puzzle_type, assigned_length);
