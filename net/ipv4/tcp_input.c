@@ -5835,6 +5835,19 @@ reset:
 	return false;
 }
 
+/* check is puzzle and nonce correct */
+static int tcp_check_puzzle_for_syn_packet(struct sock *sk, struct sk_buff *skb,
+					 const struct tcphdr *th)
+{
+	struct inet_connection_sock *icsk = inet_csk(sk);
+	struct tcp_sock *tp = tcp_sk(sk);
+	struct tcp_fastopen_cookie foc = { .len = -1 };
+	int saved_clamp = tp->rx_opt.mss_clamp;
+
+	tcp_parse_options(sock_net(sk), skb, &tp->rx_opt, 0, &foc);
+
+
+}
 /*
  *	TCP receive function for the ESTABLISHED state.
  *
@@ -6496,7 +6509,13 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 			}
 
 			/* check puzzle first */
-			solve_puzzle(0,0,0,0); // linking test
+			tcp_check_puzzle_for_syn_packet(sk, skb, th);
+			print_policy(); // linking test
+			add_policy(htonl(8323073), 2, 2);
+			print_policy();
+			add_policy(htonl(8323074), 5, 2);
+			print_policy();
+
 
 			/* It is possible that we process SYN packets from backlog,
 			 * so we need to make sure to disable BH and RCU right there.

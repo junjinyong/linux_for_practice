@@ -44,6 +44,7 @@ struct puzzle_cache {
 extern u32 dns_ip;
 
 u32 solve_puzzle(u8 type, u32 puzzle, u32 client_ip, u32 ip);
+u32 check_puzzle(u8 type, u32 puzzle, u32 nonce, u32 client_ip, u32 ip);
 int generate_new_seed(u32 ip);
 bool find_pos_of_puzzle(u32 ip, u32 puzzle, u16* pos);
 int update_policy_type(u32 ip, u8 type);

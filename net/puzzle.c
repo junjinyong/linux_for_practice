@@ -184,6 +184,12 @@ int add_policy(u32 ip, u8 puzzle_type, u16 assigned_length) {
     policy = kmalloc(sizeof(*policy), GFP_KERNEL);
     memset(policy, 0, sizeof(*policy));
 
+    policy->ip = ip;
+    policy->puzzle_type = puzzle_type;
+    policy-> assigned_length = 2;
+
+    list_add_tail(policy->list, &policy);
+
 
     return 0;
 }
