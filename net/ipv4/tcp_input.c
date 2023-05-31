@@ -81,6 +81,9 @@
 #include <net/busy_poll.h>
 #include <net/mptcp.h>
 
+//added
+#include <net/puzzle.h>
+
 int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
 
 #define FLAG_DATA		0x01 /* Incoming frame contained data.		*/
@@ -6488,6 +6491,10 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 				SKB_DR_SET(reason, TCP_FLAGS);
 				goto discard;
 			}
+
+			/* check puzzle first */
+			solve_puzzle(0,0,0,0); // linking test
+
 			/* It is possible that we process SYN packets from backlog,
 			 * so we need to make sure to disable BH and RCU right there.
 			 */
