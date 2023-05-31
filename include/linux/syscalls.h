@@ -857,12 +857,12 @@ asmlinkage long sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned fla
 asmlinkage long sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned flags);
 
 /* net/puzzle.c */
-asmlinkage long sys_puzzle_print_policy();
+asmlinkage long sys_puzzle_print_policy(void);
 asmlinkage long sys_puzzle_add_policy(__u32, __u8, __u16);
 asmlinkage long sys_puzzle_edit_policy(__u32, __u8, __u32, __u16);
 asmlinkage long sys_puzzle_detail_policy(__u32);
-asmlinkage long sys_puzzle_update_policy();
-asmlinkage long sys_puzzle_print_cache();
+asmlinkage long sys_puzzle_update_policy(void);
+asmlinkage long sys_puzzle_print_cache(void);
 asmlinkage long sys_puzzle_remake_seed(__u32);
 
 

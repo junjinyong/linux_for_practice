@@ -41,15 +41,13 @@ struct puzzle_cache {
 	struct list_head list;
 };
 
-LIST_HEAD(policy_head);
-LIST_HEAD(cache_head);
-u32 dns_ip = 0;
+extern u32 dns_ip;
 
 u32 solve_puzzle(u8 type, u32 puzzle, u32 client_ip, u32 ip);
 int generate_new_seed(u32 ip);
-bool find_pos_of_puzzle(u32 ip, u8 type, u32 puzzle, u16* pos);
-bool update_policy_type(u32 ip, u8 type);
-bool update_policy_length(u32 ip, u16 length);
-bool update_puzzle_cache(u32 ip, u32 puzzle_type, u32 puzzle);
+bool find_pos_of_puzzle(u32 ip, u32 puzzle, u16* pos);
+int update_policy_type(u32 ip, u8 type);
+int update_policy_length(u32 ip, u16 length);
+int update_puzzle_cache(u32 ip, u32 puzzle_type, u32 puzzle);
 
 #endif

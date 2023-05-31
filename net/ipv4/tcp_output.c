@@ -720,7 +720,7 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			       (TCPOPT_NOP << 16) |
 			       (TCPOPT_PUZZLE << 8) |
 			       TCPOLEN_PUZZLE);
-		*ptr++ = htol(opts->puzzle)
+		*ptr++ = htonl(opts->puzzle);
 	}
 
 	if (unlikely(opts->nonce)) {
@@ -728,7 +728,7 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			       (TCPOPT_NOP << 16) |
 			       (TCPOPT_NONCE << 8) |
 			       TCPOLEN_NONCE);
-		*ptr++ = htol(opts->nonce)
+		*ptr++ = htonl(opts->nonce);
 	}
 
 	if (unlikely(opts->dns_ip)) {
@@ -736,7 +736,7 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			       (TCPOPT_NOP << 16) |
 			       (TCPOPT_DNS_IP << 8) |
 			       TCPOLEN_DNS_IP);
-		*ptr++ = htol(opts->dns_ip)
+		*ptr++ = htonl(opts->dns_ip);
 	}
 
 	smc_options_write(ptr, &options);
