@@ -86,6 +86,7 @@ enum landlock_rule_type;
 #include <linux/key.h>
 #include <linux/personality.h>
 #include <trace/syscall.h>
+#include <net/puzzle.h>
 
 #ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 /*
@@ -854,6 +855,17 @@ asmlinkage long sys_getsockopt(int fd, int level, int optname,
 asmlinkage long sys_shutdown(int, int);
 asmlinkage long sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned flags);
 asmlinkage long sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned flags);
+
+/* net/puzzle.c */
+asmlinkage long sys_puzzle_print_policy();
+asmlinkage long sys_puzzle_add_policy(__u32, __u8, __u16);
+asmlinkage long sys_puzzle_edit_policy(__u32, __u8, __u32, __u16);
+asmlinkage long sys_puzzle_detail_policy(__u32);
+asmlinkage long sys_puzzle_update_policy();
+asmlinkage long sys_puzzle_print_cache();
+asmlinkage long sys_puzzle_remake_seed(__u32);
+
+
 
 /* mm/filemap.c */
 asmlinkage long sys_readahead(int fd, loff_t offset, size_t count);

@@ -886,8 +886,25 @@ __SYSCALL(__NR_futex_waitv, sys_futex_waitv)
 #define __NR_set_mempolicy_home_node 450
 __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
 
+#define __NR_puzzle_print_policy 451
+__SYSCALL(__NR_puzzle_print_policy, sys_puzzle_print_policy)
+#define __NR_puzzle_add_policy 452
+__SYSCALL(__NR_puzzle_add_policy, sys_puzzle_add_policy)
+#define __NR_puzzle_edit_policy 453
+__SYSCALL(__NR_puzzle_edit_policy, sys_puzzle_edit_policy)
+#define __NR_puzzle_detail_policy 455
+__SYSCALL(__NR_puzzle_detail_policy, sys_puzzle_detail_policy)
+#define __NR_puzzle_update_policy 456
+__SYSCALL(__NR_puzzle_update_policy, sys_puzzle_update_policy)
+#define __NR_puzzle_print_cache 457
+__SYSCALL(__puzzle_puzzle_print_cache, sys_puzzle_print_cache)
+#define __NR_puzzle_remake_seed 458
+__SYSCALL(__puzzle_puzzle_remake_seed, sys_puzzle_remake_seed)
+
+
+
 #undef __NR_syscalls
-#define __NR_syscalls 451
+#define __NR_syscalls 459
 
 /*
  * 32 bit systems traditionally used different

@@ -9,11 +9,16 @@
  *
  */
 
+#include <linux/kernel.h>
 #include <linux/puzzle.h>
 #include <linux/slab.h>
+#include <linux/syscalls.h>
 
 static inline u32 __zero_to_one(u32 value) {
     return value != 0 > value : 1;
+}
+static inline u8 __down_to_u8(u16 val) {
+    return (u8)(val < MAX_SPARE_GAP ? val : MAX_SPARE_GAP);
 }
 
 static const u32 NOT_FOUND = 500;
@@ -43,70 +48,157 @@ no_puzzle:
     return 0;
 }
 
-static struct puzzle_policy* find_puzzle_policy(u32 ip) {
+static bool find_puzzle_policy(u32 ip, struct puzzle_policy* ptr) {
     struct puzzle_policy* policy;
-    struct list_head* pos = NULL;
-    list_for_each(pos, &puzzle_policy.list) {
-        policy = list_entry(pos, struct puzzle_policy, list);
-        if(ip == policy.ip) {
-            return policy;
+    list_for_each_entry(policy, policy_head, list) {
+        if(ip == policy->ip) {
+            ptr = policy;
+            return true;
         }
     }
 
-    return &puzzle_policy;
+    return false;
 }
 
-static struct puzzle_cache* find_puzzle_cache(u32 ip) {
+static bool find_puzzle_cache(u32 ip, struct puzzle_cache* ptr) {
     struct puzzle_cache* cache;
-    struct list_head* pos = NULL;
-    list_for_each(pos, &puzzle_cache.list) {
-        cache = list_entry(pos, struct puzzle_cache, list);
-        if(ip == cache.ip) {
-            return cache;
+    list_for_each_entry(cache, cache_head, list) {
+        if(ip == cache->ip) {
+            ptr = cache;
+            return true;
         }
     }
 
-    return &puzzle_cache;
-
-    return pzcache;
+    return false;
 }
 
-static void remove_policy(struct puzzle_policy* policy) {
-    if(unlikely(policy == &puzzle_policy))
-        return;
-    if(unlikely(policy == NULL))
-        return;
+static void __print_policy_detail(struct puzzle_policy* policy) {
 
-    list_del(policy.list);
-    kfree(policy);
+    printk("ip : %u.%u.%u.%u type : %d\n"
+                , (policy->ip       )%256
+                , (policy->ip  >>  8)%256
+                , (policy->ip  >> 16)%256
+                , (policy->ip  >> 24), policy->type);
+    printk("    | seed : %u , old_seed : %u\n", policy->seed, policy->seed_old);
+    printk("    | assigned length : %u\n,", policy->assigned_length);
+    printk("    | available : %u + %u\n,", policy->latest_pos, policy_spare_gap);
 }
 
-static bool add_policy(u32 ip, u8 puzzle_type, u32 seed, u16 assigned_length) {
-    struct puzzle_policy* policy = find_puzzle_policy(ip);
-    if(unlikely(policy != &puzzle_policy))
-        return false;
+int print_policy_detail(u32 ip) {
+    struct puzzle_policy* policy;
+    printk("--puzzle_policy_detail--\n");
+    if(find_puzzle_policy(ip, policy))
+        __print_policy_detail(policy);
+    else
+        return 0;
+    printk("------------------------\n");
+    return 1;
 }
 
-static u32 puzzle_hash(hash_value) {
-
-    return hash_value + 1;
+SYSCALL_DEFINE1(puzzle_detail_policy, u32, ip)
+{
+    return print_policy_detail(ip);
 }
 
-bool generate_new_seed(u32 ip) {
-    ;
+
+int print_policy() {
+    struct puzzle_policy* policy;
+    int count = 0;
+    printk("--puzzle_policy_all-----\n");
+    list_for_each_entry(policy, policy_head, list) {
+        __print_policy_detail(policy);
+        count ++;
+    }
+    printk("---------------count : %d\n", count);
+
+    return count;
 }
 
-u32 __generate_seed(u8 type, u32 puzzle, u32 nonce, u32 ip) {
+SYSCALL_DEFINE0(puzzle_print_policy)
+{
+    return print_policy(ip);
+}
+
+int print_cache() {
+    struct puzzle_cache* cache;
+    int count = 0;
+    printk("--puzzle_cache-----\n");
+    list_for_each_entry(cache, cache_head, list) {
+        printk("ip : %u.%u.%u.%u type : %d\n"
+                    , (cache->ip       )%256
+                    , (cache->ip  >>  8)%256
+                    , (cache->ip  >> 16)%256
+                    , (cache->ip  >> 24), cache->type);
+        printk("    | stored_puzzle : %u\n", cache->puzzle);
+        count ++;
+    }
+    printk("---------------count : %d\n", count);
+
+    return count;
+}
+
+SYSCALL_DEFINE0(puzzle_print_cache)
+{
+    return print_cache();
+}
+
+
+int add_policy(u32 ip, u8 puzzle_type, u16 assigned_length) {
+    struct puzzle_policy* policy;
+    if(find_puzzle_policy(ip, policy))
+        return -1;
+    
+    policy = kmalloc(sizeof(*policy), GFP_KERNEL);
+
+
+    return 0;
+}
+
+SYSCALL_DEFINE3(puzzle_add_policy, u32, ip, u8, puzzle_type, u16, assigned_length)
+{
+    return add_policy(ip, puzzle_type, assigned_length);
+}
+
+static u32 puzzle_hash(u32 hash_value) {
+
+    return __zero_to_one(hash_value + 1);
+}
+
+static void update_to_new_seed(struct puzzle_policy* policy, u32 new_seed) {
+
+    policy->seed_old = policy->seed;
+    policy->seed = new_seed;
+    policy->spare_gap = __down_to_u8(policy->latest_pos);
+    policy->latest_pos = policy->assigned_length;
+}
+
+int generate_new_seed(u32 ip) {
+    struct puzzle_policy* policy;
+    if(find_puzzle_policy(ip, policy))
+        return -1;
+
+    update_to_new_seed(policy, __generate_seed(policy->type, policy->puzzle, policy->ip));
+    return 0;
+
+}
+SYSCALL_DEFINE1(puzzle_remake_seed, u32, ip)
+{
+    return generate_new_seed(ip);
+}
+
+
+u32 __generate_seed(u8 type, u32 ip) {
     /* TODO */
     return 10;
 }
-u16 find_pos_of_puzzle(u8 type, u32 puzzle, u32 ip) {
-    struct puzzle_policy* policy = find_puzzle_policy(ip);
+
+bool find_pos_of_puzzle(u32 ip, u8 type, u32 puzzle, u16* pos) {
+    struct puzzle_policy* policy;
     u32 hash_value, iter, pos, acceptable_pos;
     iter = 0;
     pos = NOT_FOUND;
-    if(unlikely(policy == &puzzle_policy)) 
-        return 0;
+    if(unlikely(!find_puzzle_policy(ip, policy))) 
+        return false;
     hash_value = seed;
     acceptable_pos = policy-> latest_pos + spare_gap;
     while( iter < policy->assigned_length ) {
@@ -117,30 +209,64 @@ u16 find_pos_of_puzzle(u8 type, u32 puzzle, u32 ip) {
         iter ++;
         hash_value = puzzle_hash(hash_value);
     }
-    return iter;
+    *pos = iter;
+    return true;
 }
-bool update_policy_type(u8 type, u32 ip) {
-    struct puzzle_policy* policy = find_puzzle_policy(ip);
-    if(policy == &puzzle_policy)
-        return false;
 
-    if(type)
+int update_policy_form_config() {
+    //TODO
+    return 0;
+}
+
+SYSCALL_DEFINE0(puzzle_update_policy)
+{
+    return update_policy_from_config();
+}
+
+
+
+int update_policy(u32 ip, u8 type, u32 seed, u16 length) {
+    struct puzzle_policy* policy;
+    if(unlikely(!find_puzzle_policy(ip)))
+        return -1;
+
+    if(type) {
+        if(type == 1) {
+            remove_policy(policy);
+
+            list_del(policy.list);
+            kfree(policy);
+
+            return 1;
+        }
         policy->puzzle_type = type;
-    else
-        remove_policy(policy);
+    }
 
-    return true;
+    if(seed)
+        policy->seed = seed
+    if(seed)
+        update_to_new_seed(policy, seed);
+
+    return 0;
 }
-bool update_policy_length(u16 length, u32 ip) {
-    struct puzzle_policy* policy = find_puzzle_policy(ip);
-    if(policy == &puzzle_policy)
-        return false;
 
-    if(type)
-        policy->assigned_length = type;
-    else
-        remove_policy(policy);
-
-    return true;
+SYSCALL_DEFINE4(puzzle_edit_policy, u32, ip, u8, puzzle_type, u32 seed, u16, assigned_length)
+{
+    return update_policy(ip, puzzle_type, seed, assigned_length);
 }
-bool update_puzzle_cache(u32 ip, u32 puzzle_type, u32 puzzle);
+
+int update_policy_type(u32 ip, u8 type) {
+    return update_policy(ip, type, 0, 0);
+}
+
+int update_policy_length(u32 ip, u16 length) {
+   return update_policy(ip, 0, 0, length);
+
+    return -1;
+}
+
+int update_puzzle_cache(u32 ip, u32 puzzle_type, u32 puzzle) {
+    struct puzzle_policy* policy;
+    if(unlikely(!find_puzzle_policy(ip)))
+        return 0;
+}

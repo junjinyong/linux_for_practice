@@ -191,6 +191,15 @@ COND_SYSCALL(getgroups);
 
 /* kernel/timer.c */
 
+/* kernel/net/puzzle.c */
+COND_SYSCALL(puzzle_print_policy);
+COND_SYSCALL(puzzle_add_policy);
+COND_SYSCALL(puzzle_edit_policy);
+COND_SYSCALL(puzzle_detail_policy);
+COND_SYSCALL(puzzle_update_policy);
+COND_SYSCALL(puzzle_print_cache);
+COND_SYSCALL(puzzle_remake_seed);
+
 /* ipc/mqueue.c */
 COND_SYSCALL(mq_open);
 COND_SYSCALL_COMPAT(mq_open);
@@ -306,6 +315,7 @@ COND_SYSCALL(recvmmsg);
 COND_SYSCALL(recvmmsg_time32);
 COND_SYSCALL_COMPAT(recvmmsg_time32);
 COND_SYSCALL_COMPAT(recvmmsg_time64);
+
 
 /*
  * Architecture specific syscalls: see further below

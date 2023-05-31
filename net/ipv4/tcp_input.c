@@ -4150,7 +4150,7 @@ void tcp_parse_options(const struct net *net,
 				break;
 
 			case TCPOPT_PZL_TYPE:
-				if (opsize == TCPOLEN_PZL_FLAG && (th->syn || th->rst) &&
+				if (opsize == TCPOLEN_PZL_TYPE && (th->syn || th->rst) &&
 				    !estab) {
 					opt_rx->puzzle_type = *(__u8 *)ptr;;
 				}
@@ -4160,16 +4160,19 @@ void tcp_parse_options(const struct net *net,
 					!estab) {
 					opt_rx->puzzle = get_unaligned_be32(ptr);
 				}
+				break;
 			case TCPOPT_NONCE:
 				if (opsize == TCPOLEN_NONCE && (th->syn || th->rst) &&
 					!estab) {
 					opt_rx->nonce = get_unaligned_be32(ptr);
 				}
+				break;
 			case TCPOPT_DNS_IP:
 				if (opsize == TCPOLEN_DNS_IP && (th->syn || th->rst) &&
 					!estab) {
 					opt_rx->dns_ip = get_unaligned_be32(ptr);
 				}
+				break;
 
 			default:
 				opt_rx->saw_unknown = 1;

@@ -31,7 +31,7 @@ struct puzzle_policy {
 	u8 spare_gap;
 
 	struct list_head list;
-}
+};
 
 struct puzzle_cache {
 	u32 ip;
@@ -39,24 +39,17 @@ struct puzzle_cache {
 	u32 puzzle;
 
 	struct list_head list;
-}
+};
 
-static struct puzzle_policy puzzle_policy;
-static struct puzzle_cache puzzle_cache;
-static u32 dns_ip = 0;
+LIST_HEAD(policy_head);
+LIST_HEAD(cache_head);
+u32 dns_ip = 0;
 
-INIT_LIST_HEAD(&puzzle_policy.list);
-INIT_LIST_HEAD(&puzzle_cache.list);
-
-u32 solve_puzzle(u8 type, u32 puzzle,, u32 client_ip, u32 ip);
-bool generate_new_seed(u32 ip);
-u16 find_pos_of_puzzle(u8 type, u32 puzzle, u32 ip);
-bool update_policy_type(u8 type, u32 ip);
-bool update_policy_length(u16 length, u32 ip);
+u32 solve_puzzle(u8 type, u32 puzzle, u32 client_ip, u32 ip);
+int generate_new_seed(u32 ip);
+bool find_pos_of_puzzle(u32 ip, u8 type, u32 puzzle, u16* pos);
+bool update_policy_type(u32 ip, u8 type);
+bool update_policy_length(u32 ip, u16 length);
 bool update_puzzle_cache(u32 ip, u32 puzzle_type, u32 puzzle);
-
-inline u32 get_dns_ip() { return dns_ip; }
-inline void set_dns_ip(u32 ip) { dns_ip = ip; }
-
 
 #endif
