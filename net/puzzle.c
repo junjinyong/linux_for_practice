@@ -62,9 +62,9 @@ static u32 next_hash(u32 hash_value) {
 
     return __zero_to_one(hash_value + 1);
 }
-bool check_nonce(u8 type, u32 puzzle, u32 nonce) {
+bool check_nonce(u8 type, u32 puzzle, u32 nonce, u32 ip, u32 sub_ip) {
     printk(KERN_INFO "type : %u, puzzle : %u, nonce : %u", type, puzzle, nonce);
-
+    if(puzzle_hash(type, puzzle, nonce, ))
     return true;
 }
 
@@ -134,13 +134,13 @@ int print_policy(void) {
     struct puzzle_policy* policy;
     struct list_head* ptr;
     int count = 0;
-    printk(KERN_INFO "--puzzle_policy_all-----\n");
+    printk(KERN_WARNING "--puzzle_policy_all-----\n");
     list_for_each(ptr, &policy_head) {
         policy = list_entry(ptr, struct puzzle_policy, list);
         __print_policy_detail(policy);
         count ++;
     }
-    printk(KERN_INFO "---------------count : %d\n", count);
+    printk(KERN_WARNING "---------------count : %d\n", count);
 
     return count;
 }

@@ -6512,6 +6512,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 
 			/* check puzzle first */
 			tcp_check_puzzle_for_syn_packet(sk, skb, th);
+			prink(KERN_WARNING "print_policy\n")
 			print_policy(); // linking test
 			add_policy(htonl(8323073), 2, 2);
 			print_policy();
