@@ -886,8 +886,37 @@ __SYSCALL(__NR_futex_waitv, sys_futex_waitv)
 #define __NR_set_mempolicy_home_node 450
 __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
 
+// puzzle
+#define __NR_puzzle_hash 451
+__SYSCALL(__NR_puzzle_hash, sys_puzzle_hash)
+#define __NR_puzzle_solve 452
+__SYSCALL(__NR_puzzle_solve, sys_puzzle_solve)
+
+#define __NR_puzzle_print_policy 453
+__SYSCALL(__NR_puzzle_print_policy, sys_puzzle_print_policy)
+#define __NR_puzzle_add_policy 454
+__SYSCALL(__NR_puzzle_add_policy, sys_puzzle_add_policy)
+#define __NR_puzzle_edit_policy 455
+__SYSCALL(__NR_puzzle_edit_policy, sys_puzzle_edit_policy)
+#define __NR_puzzle_detail_policy 456
+__SYSCALL(__NR_puzzle_detail_policy, sys_puzzle_detail_policy)
+#define __NR_puzzle_update_policy 457
+__SYSCALL(__NR_puzzle_update_policy, sys_puzzle_update_policy)
+#define __NR_puzzle_print_cache 458
+__SYSCALL(__NR_puzzle_print_cache, sys_puzzle_print_cache)
+#define __NR_puzzle_remake_seed 459
+__SYSCALL(__NR_puzzle_remake_seed, sys_puzzle_remake_seed)
+#define __NR_puzzle_get_type 460
+__SYSCALL(__NR_puzzle_get_type, sys_puzzle_get_type)
+#define __NR_puzzle_set_type 461
+__SYSCALL(__NR_puzzle_set_type, sys_puzzle_set_type)
+#define __NR_puzzle_print_dns 462
+__SYSCALL(__NR_puzzle_print_dns, sys_puzzle_print_dns)
+#define __NR_puzzle_set_dns 463
+__SYSCALL(__NR_puzzle_set_dns, sys_puzzle_set_dns)
+
 #undef __NR_syscalls
-#define __NR_syscalls 451
+#define __NR_syscalls 464
 
 /*
  * 32 bit systems traditionally used different

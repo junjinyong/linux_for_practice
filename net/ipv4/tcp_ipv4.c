@@ -70,6 +70,8 @@
 #include <net/secure_seq.h>
 #include <net/busy_poll.h>
 
+#include <net/puzzle.h>
+
 #include <linux/inet.h>
 #include <linux/ipv6.h>
 #include <linux/stddef.h>
@@ -692,6 +694,11 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	u64 transmit_time = 0;
 	struct sock *ctl_sk;
 	struct net *net;
+	struct inet_sock *inet;
+	struct puzzle_policy *policy = NULL;
+	u8 puzzle_type;
+	u32 puzzle = 0, threshold = 0;
+	bool has_puzzle_info = true;
 
 	/* Never send a reset in response to a reset. */
 	if (th->rst)
@@ -723,6 +730,43 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	arg.iov[0].iov_len  = sizeof(rep.th);
 
 	net = sk ? sock_net(sk) : dev_net(skb_dst(skb)->dev);
+
+	printk("sending reset\n");
+	puzzle_type = get_puzzle_type();
+	switch(puzzle_type) {
+	case PZLTYPE_NONE:
+		has_puzzle_info = false;
+		break;
+	case PZLTYPE_LOCAL:
+		if(find_puzzle_policy(rep.th.dest, &policy)) {
+			has_puzzle_info = true;
+			puzzle = get_last_hash_chain(policy);
+			threshold = policy->threshold;
+		}
+		break;
+	case PZLTYPE_DNS:
+		if(!sk)
+			has_puzzle_info = false;
+		break;
+	}
+	if(has_puzzle_info) {
+		rep.opt[0] = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_PZL_TYPE << 16) |
+			       (TCPOLEN_PZL_TYPE << 8) |
+			       puzzle_type);
+		rep.opt[1] = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_PUZZLE << 8) |
+			       TCPOLEN_PUZZLE);
+		rep.opt[2] = htonl(puzzle);
+		rep.opt[3] = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_THRESHOLD << 8) |
+			       TCPOLEN_THRESHOLD);
+		rep.opt[4] = htonl(threshold);
+		arg.iov[0].iov_len += 5*4;
+	}
+
 #ifdef CONFIG_TCP_MD5SIG
 	rcu_read_lock();
 	hash_location = tcp_parse_md5sig_option(th);
@@ -774,7 +818,8 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	}
 
 	if (key) {
-		rep.opt[0] = htonl((TCPOPT_NOP << 24) |
+		int offset = (has_puzzle_info) ? 5 : 0;
+		rep.opt[offset++] = htonl((TCPOPT_NOP << 24) |
 				   (TCPOPT_NOP << 16) |
 				   (TCPOPT_MD5SIG << 8) |
 				   TCPOLEN_MD5SIG);

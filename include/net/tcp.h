@@ -189,6 +189,13 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCPOPT_MPTCP		30	/* Multipath TCP (RFC6824) */
 #define TCPOPT_FASTOPEN		34	/* Fast open (RFC7413) */
 #define TCPOPT_EXP		254	/* Experimental */
+
+#define TCPOPT_PZL_TYPE		11
+#define TCPOPT_PUZZLE		12
+#define TCPOPT_NONCE		13
+#define TCPOPT_DNS_IP		14
+#define TCPOPT_THRESHOLD	15
+
 /* Magic number to be after the option value for sharing TCP
  * experimental options. See draft-ietf-tcpm-experimental-options-00.txt
  */
@@ -218,6 +225,12 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCPOLEN_MD5SIG_ALIGNED		20
 #define TCPOLEN_MSS_ALIGNED		4
 #define TCPOLEN_EXP_SMC_BASE_ALIGNED	8
+
+#define TCPOLEN_PZL_TYPE       3
+#define TCPOLEN_PUZZLE	       6
+#define TCPOLEN_NONCE	       6
+#define TCPOLEN_DNS_IP	       6
+#define TCPOLEN_THRESHOLD      6
 
 /* Flags in tp->nonagle */
 #define TCP_NAGLE_OFF		1	/* Nagle's algo is disabled */

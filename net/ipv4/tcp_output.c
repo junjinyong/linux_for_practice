@@ -39,6 +39,7 @@
 
 #include <net/tcp.h>
 #include <net/mptcp.h>
+#include <net/puzzle.h>
 
 #include <linux/compiler.h>
 #include <linux/gfp.h>
@@ -438,6 +439,13 @@ struct tcp_out_options {
 	u8 bpf_opt_len;		/* length of BPF hdr option */
 	__u8 *hash_location;	/* temporary pointer, overloaded */
 	__u32 tsval, tsecr;	/* need to include OPTION_TS */
+
+	__u8 puzzle_type;
+	__u32 puzzle;
+	__u32 nonce;
+	__u32 dns_ip;
+	__u32 threshold;
+
 	struct tcp_fastopen_cookie *fastopen_cookie;	/* Fast open cookie */
 	struct mptcp_out_options mptcp;
 };
@@ -697,6 +705,45 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			p[foc->len + 1] = TCPOPT_NOP;
 		}
 		ptr += (len + 3) >> 2;
+	}
+
+	if (unlikely(opts->puzzle_type)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_PZL_TYPE << 16) |
+			       (TCPOLEN_PZL_TYPE << 8) |
+			       opts->puzzle_type);
+	}
+
+	if (unlikely(opts->puzzle)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_PUZZLE << 8) |
+			       TCPOLEN_PUZZLE);
+		*ptr++ = htonl(opts->puzzle);
+	}
+
+	if (unlikely(opts->nonce)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_NONCE << 8) |
+			       TCPOLEN_NONCE);
+		*ptr++ = htonl(opts->nonce);
+	}
+
+	if (unlikely(opts->dns_ip)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_DNS_IP << 8) |
+			       TCPOLEN_DNS_IP);
+		*ptr++ = htonl(opts->dns_ip);
+	}
+
+	if (unlikely(opts->threshold)) {
+		*ptr++ = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_THRESHOLD << 8) |
+			       TCPOLEN_THRESHOLD);
+		*ptr++ = htonl(opts->threshold);
 	}
 
 	smc_options_write(ptr, &options);
@@ -1245,6 +1292,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	unsigned int tcp_options_size, tcp_header_size;
 	struct sk_buff *oskb = NULL;
 	struct tcp_md5sig_key *md5;
+	struct iphdr *ih = tp_hdr(skb);
 	struct tcphdr *th;
 	u64 prior_wstamp;
 	int err;
@@ -1352,6 +1400,27 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 		 * is never scaled.
 		 */
 		th->window	= htons(min(tp->rcv_wnd, 65535U));
+	}
+
+	if((tcb->tcp_flags & TCPHDR_SYN)) {
+		if(!(tcb->tcp_flags & TCPHDR_ACK)) {
+			struct puzzle_cache* cache;
+			u32 dns_ip, dns_port;
+			get_puzzle_dns(&dns_ip, &dns_port);
+			if(find_puzzle_cache(ih->daddr, &cache)) {
+				opts.puzzle_type = cache->puzzle_type;
+				opts.puzzle = cache->puzzle;
+				opts.nonce = do_puzzle_solve(cache->threshold, cache->puzzle, ih->saddr, 0, cache->puzzle_type);
+				opts.dns_ip = dns_ip;
+
+				printk(KERN_INFO "sending connect >> p: %u, n: %u", opts.puzzle, opts.nonce);
+			}
+		} else {
+			struct puzzle_policy* policy;
+			opts.puzzle_type = get_puzzle_type();
+
+			printk(KERN_INFO "sending puzzle info on SYNACK");
+		}
 	}
 
 	tcp_options_write(th, tp, &opts);

@@ -1276,6 +1276,21 @@ asmlinkage long sys_old_mmap(struct mmap_arg_struct __user *arg);
  */
 asmlinkage long sys_ni_syscall(void);
 
+asmlinkage __u32 sys_puzzle_hash(__u32 nonce, __u32 target_ip, __u32 target_port, __u8 puzzle_type);
+asmlinkage __u32 sys_puzzle_solve(__u32 threshold, __u32 target_ip, __u32 target_port, __u8 puzzle_type);
+
+asmlinkage long sys_puzzle_print_policy(void);
+asmlinkage long sys_puzzle_add_policy(__u32 ip, __u16 assigned_length, __u32 threshold);
+asmlinkage long sys_puzzle_edit_policy(__u32 ip, __u32 seed, __u16 assigned_length, __u32 threshold);
+asmlinkage long sys_puzzle_detail_policy(__u32 ip);
+asmlinkage long sys_puzzle_update_policy(void);
+asmlinkage long sys_puzzle_print_cache(void);
+asmlinkage __u32 sys_puzzle_remake_seed(__u32 ip);
+asmlinkage __u8 sys_puzzle_get_type(void);
+asmlinkage long sys_puzzle_set_type(__u8 type);
+asmlinkage long sys_puzzle_print_dns(void);
+asmlinkage long sys_puzzle_set_dns(__u32 ip, __u32 port);
+
 #endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
 
 
