@@ -393,9 +393,10 @@ int check_puzzle(u8 type, u32 puzzle, u32 nonce, u32 ip, u32 port, u32 policy_ip
 
     printk(KERN_INFO "type : %u, puzzle : %u, nonce : %u", type, puzzle, nonce);
 
+    if( type == PZLTYPE_NONE )
+        return 0;
     if(unlikely(!find_puzzle_policy(policy_ip, &policy))) {
         switch(type) {
-        case PZLTYPE_NONE:
         case PZLTYPE_LOCAL:
             return 0;
         case PZLTYPE_DNS:
