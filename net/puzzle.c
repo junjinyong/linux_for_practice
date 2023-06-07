@@ -106,7 +106,7 @@ bool find_puzzle_policy(u32 ip, struct puzzle_policy** ptr) {
     case PZLTYPE_LOCAL:
         if(list_empty(&policy_head))
             return false;
-        policy = list_first_entry(&policy_head, struct puzzle_policy, list);
+        *ptr = list_first_entry(&policy_head, struct puzzle_policy, list);
         return true;
     case PZLTYPE_DNS:
         list_for_each(head, &policy_head) {
@@ -519,7 +519,7 @@ long get_puzzle_dns(u32* ip, u32* port) {
 EXPORT_SYMBOL(get_puzzle_dns);
 
 long print_puzzle_dns(void) {
-    u32 ip = puzzle_dns.ip;
+    u32 ip = ntohl(puzzle_dns.ip);
     printk(KERN_INFO "ip : %u.%u.%u.%u port : %u\n"
                 , (ip  >> 24)
                 , (ip  >> 16)%256
