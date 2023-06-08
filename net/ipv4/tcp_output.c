@@ -713,7 +713,6 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			       (TCPOLEN_PZL_TYPE << 8) |
 			       opts->puzzle_type);
 	}
-
 	if (unlikely(opts->puzzle)) {
 		*ptr++ = htonl((TCPOPT_NOP << 24) |
 			       (TCPOPT_NOP << 16) |
@@ -879,7 +878,17 @@ static unsigned int tcp_syn_options(struct sock *sk, struct sk_buff *skb,
 	}
 
 	bpf_skops_hdr_opt_len(sk, skb, NULL, NULL, 0, opts, &remaining);
-
+/*
+	if(get_puzzle_type() != PZLTYPE_NONE) {
+		struct puzzle_cache* cache;
+		if(find_puzzle_cache(tcp_hdr(skb)->source, &cache)) {
+			opts->puzzle = cache->puzzle;
+			opts->nonce = do_puzzle_solve(cache->threshold, cache->puzzle,ih->saddr, 0, cache->puzzle_type);
+			opts->threshold = cache->threshold;
+			remaining -= 24;
+		}
+	}
+	*/
 	return MAX_TCP_OPTION_SPACE - remaining;
 }
 
@@ -1292,7 +1301,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	unsigned int tcp_options_size, tcp_header_size;
 	struct sk_buff *oskb = NULL;
 	struct tcp_md5sig_key *md5;
-	struct iphdr *ih = tp_hdr(skb);
+	struct iphdr *ih = ip_hdr(skb);
 	struct tcphdr *th;
 	u64 prior_wstamp;
 	int err;
@@ -1380,6 +1389,8 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	th->check		= 0;
 	th->urg_ptr		= 0;
 
+	printk("transmition %u(%u) -> %u(%u)",ntohs(th->source), ntohs(tcp_hdr(skb)->dest), ntohs(th->dest), ntohs(tcp_hdr(skb)->source));
+
 	/* The urg_mode check is necessary during a below snd_una win probe */
 	if (unlikely(tcp_urg_mode(tp) && before(tcb->seq, tp->snd_up))) {
 		if (before(tp->snd_up, tcb->seq + 0x10000)) {
@@ -1401,8 +1412,8 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 		 */
 		th->window	= htons(min(tp->rcv_wnd, 65535U));
 	}
-
-	if((tcb->tcp_flags & TCPHDR_SYN)) {
+/*
+	if(tcb->tcp_flags & TCPHDR_SYN) {
 		if(!(tcb->tcp_flags & TCPHDR_ACK)) {
 			struct puzzle_cache* cache;
 			u32 dns_ip, dns_port;
@@ -1412,17 +1423,15 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 				opts.puzzle = cache->puzzle;
 				opts.nonce = do_puzzle_solve(cache->threshold, cache->puzzle, ih->saddr, 0, cache->puzzle_type);
 				opts.dns_ip = dns_ip;
-
+						   
 				printk(KERN_INFO "sending connect >> p: %u, n: %u", opts.puzzle, opts.nonce);
 			}
 		} else {
-			struct puzzle_policy* policy;
 			opts.puzzle_type = get_puzzle_type();
-
 			printk(KERN_INFO "sending puzzle info on SYNACK");
 		}
 	}
-
+*/
 	tcp_options_write(th, tp, &opts);
 
 #ifdef CONFIG_TCP_MD5SIG

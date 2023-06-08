@@ -681,6 +681,7 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	const struct tcphdr *th = tcp_hdr(skb);
 	struct {
 		struct tcphdr th;
+		__be32 tcp_opt[5];
 		__be32 opt[OPTION_BYTES / sizeof(__be32)];
 	} rep;
 	struct ip_reply_arg arg;
@@ -696,9 +697,12 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	struct net *net;
 	struct inet_sock *inet;
 	struct puzzle_policy *policy = NULL;
+	int offset;
 	u8 puzzle_type;
 	u32 puzzle = 0, threshold = 0;
 	bool has_puzzle_info = true;
+
+	printk("th->rst = %d",th->rst);
 
 	/* Never send a reset in response to a reset. */
 	if (th->rst)
@@ -710,12 +714,52 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	if (!sk && skb_rtable(skb)->rt_type != RTN_LOCAL)
 		return;
 
+	printk("sending reset\n");
+	puzzle_type = get_puzzle_type();
+	switch(puzzle_type) {
+	case PZLTYPE_NONE:
+		has_puzzle_info = false;
+		break;
+	case PZLTYPE_LOCAL:
+		if(find_puzzle_policy(th->source, &policy)) {
+			has_puzzle_info = true;
+			puzzle = get_last_hash_chain(policy);
+			threshold = policy->threshold;
+			printk ("sending : %u %u", puzzle, threshold);
+		}
+		break;
+	case PZLTYPE_DNS:
+		if(!sk)
+			has_puzzle_info = false;
+		break;
+	}
+	if(has_puzzle_info) {
+		rep.tcp_opt[0] = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_PZL_TYPE << 16) |
+			       (TCPOLEN_PZL_TYPE << 8) |
+			       puzzle_type);
+		rep.tcp_opt[1] = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_PUZZLE << 8) |
+			       TCPOLEN_PUZZLE);
+		rep.tcp_opt[2] = htonl(puzzle);
+		rep.tcp_opt[3] = htonl((TCPOPT_NOP << 24) |
+			       (TCPOPT_NOP << 16) |
+			       (TCPOPT_THRESHOLD << 8) |
+			       TCPOLEN_THRESHOLD);
+		rep.tcp_opt[4] = htonl(threshold);
+	}
+
+	offset = (has_puzzle_info) ? 5 : 0;
+
 	/* Swap the send and the receive. */
 	memset(&rep, 0, sizeof(rep));
 	rep.th.dest   = th->source;
 	rep.th.source = th->dest;
-	rep.th.doff   = sizeof(struct tcphdr) / 4;
+	rep.th.doff   = sizeof(struct tcphdr) / 4 + offset;
 	rep.th.rst    = 1;
+
+	printk("send reset %u -> %u", ntohs(rep.th.source), ntohs(rep.th.dest));
 
 	if (th->ack) {
 		rep.th.seq = th->ack_seq;
@@ -727,45 +771,9 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 
 	memset(&arg, 0, sizeof(arg));
 	arg.iov[0].iov_base = (unsigned char *)&rep;
-	arg.iov[0].iov_len  = sizeof(rep.th);
+	arg.iov[0].iov_len  = sizeof(rep.th) + offset*4;
 
 	net = sk ? sock_net(sk) : dev_net(skb_dst(skb)->dev);
-
-	printk("sending reset\n");
-	puzzle_type = get_puzzle_type();
-	switch(puzzle_type) {
-	case PZLTYPE_NONE:
-		has_puzzle_info = false;
-		break;
-	case PZLTYPE_LOCAL:
-		if(find_puzzle_policy(rep.th.dest, &policy)) {
-			has_puzzle_info = true;
-			puzzle = get_last_hash_chain(policy);
-			threshold = policy->threshold;
-		}
-		break;
-	case PZLTYPE_DNS:
-		if(!sk)
-			has_puzzle_info = false;
-		break;
-	}
-	if(has_puzzle_info) {
-		rep.opt[0] = htonl((TCPOPT_NOP << 24) |
-			       (TCPOPT_PZL_TYPE << 16) |
-			       (TCPOLEN_PZL_TYPE << 8) |
-			       puzzle_type);
-		rep.opt[1] = htonl((TCPOPT_NOP << 24) |
-			       (TCPOPT_NOP << 16) |
-			       (TCPOPT_PUZZLE << 8) |
-			       TCPOLEN_PUZZLE);
-		rep.opt[2] = htonl(puzzle);
-		rep.opt[3] = htonl((TCPOPT_NOP << 24) |
-			       (TCPOPT_NOP << 16) |
-			       (TCPOPT_THRESHOLD << 8) |
-			       TCPOLEN_THRESHOLD);
-		rep.opt[4] = htonl(threshold);
-		arg.iov[0].iov_len += 5*4;
-	}
 
 #ifdef CONFIG_TCP_MD5SIG
 	rcu_read_lock();
@@ -818,8 +826,7 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 	}
 
 	if (key) {
-		int offset = (has_puzzle_info) ? 5 : 0;
-		rep.opt[offset++] = htonl((TCPOPT_NOP << 24) |
+		rep.opt[0] = htonl((TCPOPT_NOP << 24) |
 				   (TCPOPT_NOP << 16) |
 				   (TCPOPT_MD5SIG << 8) |
 				   TCPOLEN_MD5SIG);
@@ -848,6 +855,16 @@ static void tcp_v4_send_reset(const struct sock *sk, struct sk_buff *skb)
 				      arg.iov[0].iov_len, IPPROTO_TCP, 0);
 	arg.csumoffset = offsetof(struct tcphdr, check) / 2;
 	arg.flags = (sk && inet_sk_transparent(sk)) ? IP_REPLY_ARG_NOSRCCHECK : 0;
+
+
+	printk("checkint options before start");
+	for(int i = 0; i < offset; i++) {
+		printk("%d %d %d %d"
+			,(rep.tcp_opt[i] >>24) % 256
+			,(rep.tcp_opt[i] >>16) % 256
+			,(rep.tcp_opt[i] >> 8) % 256
+			,(rep.tcp_opt[i] >> 0) % 256);
+	}
 
 	/* When socket is gone, all binding information is lost.
 	 * routing might fail in this case. No choice here, if we choose to force

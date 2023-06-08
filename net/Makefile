@@ -7,7 +7,7 @@
 #
 
 obj-y				:= devres.o socket.o core/
-obj-y				:= puzzle.o
+obj-y				+= puzzle.o
 
 obj-$(CONFIG_COMPAT)		+= compat.o
 

@@ -4147,6 +4147,26 @@ void tcp_parse_options(const struct net *net,
 				opt_rx->saw_unknown = 1;
 				break;
 
+			case TCPOPT_PZL_TYPE:
+				if(opsize == TCPOLEN_PZL_TYPE)
+					opt_rx->puzzle_type = *ptr;
+				break;
+			case TCPOPT_PUZZLE:
+				if(opsize == TCPOLEN_PUZZLE)
+					opt_rx->puzzle = get_unaligned_be32(ptr); 
+				break;
+			case TCPOPT_NONCE:
+				if(opsize == TCPOLEN_NONCE)
+					opt_rx->nonce = get_unaligned_be32(ptr);
+				break;
+			case TCPOPT_DNS_IP:
+				if(opsize == TCPOLEN_DNS_IP)
+					opt_rx->dns_ip = get_unaligned_be32(ptr);
+				break;
+			case TCPOPT_THRESHOLD:
+				if(opsize == TCPOLEN_THRESHOLD)
+					opt_rx->threshold = get_unaligned_be32(ptr);
+				break;
 			default:
 				opt_rx->saw_unknown = 1;
 			}
@@ -5827,11 +5847,11 @@ static int tcp_check_puzzle_for_syn_packet(struct sock *sk, struct sk_buff *skb,
 	}
 
 	printk(KERN_INFO "check puzzle for %u.%u.%u.%u\n puzzle : %u, nonce : %u\n"
-                , (policy_ip  >> 24)%256
-                , (policy_ip  >> 16)%256
+                , (policy_ip       )%256
                 , (policy_ip  >>  8)%256
-                , (policy_ip       )%256, tp->rx_opt.puzzle, tp->rx_opt.nonce);
-	return check_puzzle(tp->rx_opt.puzzle_type, tp->rx_opt.puzzle, tp->rx_opt.nonce, (ih->saddr), 0, (policy_ip));
+                , (policy_ip  >> 16)%256
+                , (policy_ip  >> 24)%256, tp->rx_opt.puzzle, tp->rx_opt.nonce);
+	return check_puzzle(tp->rx_opt.puzzle_type, tp->rx_opt.puzzle, tp->rx_opt.nonce,th->source/* (ih->saddr)*/, 0, (policy_ip));
 }
 
 /*
@@ -6212,8 +6232,7 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 	printk(KERN_INFO "log response \npuzzle_type: %u, threshold: %u, puzzle: %u\n"
 			,tp->rx_opt.puzzle_type, tp->rx_opt.threshold, tp->rx_opt.puzzle);
 
-	puzzle_updated = update_puzzle_cache(ih->daddr, tp->rx_opt.puzzle_type, tp->rx_opt.puzzle, tp->rx_opt.threshold);
-
+	puzzle_updated = 0;//update_puzzle_cache(ih->daddr, tp->rx_opt.puzzle_type, tp->rx_opt.puzzle, tp->rx_opt.threshold);
 
 	if (th->ack) {
 		/* rfc793:
@@ -6251,21 +6270,21 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 		 */
 
 		if (th->rst) {
-			if(puzzle_updated && find_puzzle_cache(ih->daddr, &cache)) {
+			tcp_reset(sk, skb);
+/*			if(puzzle_updated && find_puzzle_cache(ih->daddr, &cache)) {
 				switch(cache->puzzle_type) {
 				case PZLTYPE_LOCAL:
 					printk(KERN_ALERT "trying retransmition for ip : %u\n", ntohl(ih->daddr));
 					tcp_xmit_retransmit_queue(sk);
-					goto discard_and_undo;
-
+					break;
 				case PZLTYPE_DNS:
 					printk(KERN_ALERT "trying get puzzle from DNS\n");
-					goto discard_and_undo;
+					//TODO
+					break;
 				default:
 					break;
 				}
-			}
-			tcp_reset(sk, skb);
+			}*/
 consume:
 			__kfree_skb(skb);
 			return 0;
@@ -6498,12 +6517,16 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 	bool acceptable;
 	SKB_DR(reason);
 
+	printk(KERN_ALERT "rcv port s: %u, d: %u\n", ntohs(th->source), ntohs(th->dest));
+
 	switch (sk->sk_state) {
 	case TCP_CLOSE:
+		printk("closed");
 		SKB_DR_SET(reason, TCP_CLOSE);
 		goto discard;
 
 	case TCP_LISTEN:
+		printk("listen");
 		if (th->ack)
 			return 1;
 
@@ -6519,7 +6542,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 
 			if(tcp_check_puzzle_for_syn_packet(sk, skb, th)){
 				printk("puzzle failed\n");
-				return 1; // send rst
+				return 1;
 			}
 			printk("puzzle_success\n");
 
@@ -6543,10 +6566,10 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 	case TCP_SYN_SENT:
 		tp->rx_opt.saw_tstamp = 0;
 		tcp_mstamp_refresh(tp);
+		printk("syn_sent");
 		queued = tcp_rcv_synsent_state_process(sk, skb, th);
 		if (queued >= 0)
 			return queued;
-
 		/* Do step6 onward by hand. */
 		tcp_urg(sk, skb, th);
 		__kfree_skb(skb);
@@ -6621,8 +6644,6 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 
 		if (tp->rx_opt.tstamp_ok)
 			tp->advmss -= TCPOLEN_TSTAMP_ALIGNED;
-		update_puzzle_cache(ip_hdr(skb)->daddr, tp->rx_opt.puzzle_type, tp->rx_opt.puzzle, tp->rx_opt.threshold);
-
 
 		if (!inet_csk(sk)->icsk_ca_ops->cong_control)
 			tcp_update_pacing_rate(sk);
