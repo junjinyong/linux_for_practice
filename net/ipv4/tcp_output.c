@@ -878,17 +878,20 @@ static unsigned int tcp_syn_options(struct sock *sk, struct sk_buff *skb,
 	}
 
 	bpf_skops_hdr_opt_len(sk, skb, NULL, NULL, 0, opts, &remaining);
-/*
+
+	printk(KERN_ALERT "ramaining = %d", remaining);
+
 	if(get_puzzle_type() != PZLTYPE_NONE) {
 		struct puzzle_cache* cache;
 		if(find_puzzle_cache(tcp_hdr(skb)->source, &cache)) {
 			opts->puzzle = cache->puzzle;
 			opts->nonce = do_puzzle_solve(cache->threshold, cache->puzzle,ih->saddr, 0, cache->puzzle_type);
 			opts->threshold = cache->threshold;
-			remaining -= 24;
+			remaining -= 6;
+			printk(KERN_ALERT "puzzle = %u, nonce= %u",opts->puzzle, opts->nonce);
 		}
 	}
-	*/
+	
 	return MAX_TCP_OPTION_SPACE - remaining;
 }
 
